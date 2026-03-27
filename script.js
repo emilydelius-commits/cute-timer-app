@@ -1,59 +1,126 @@
-const timerState = {
-  timerElement: document.getElementById('timer'),
+const state = {
+  app: document.getElementById('app'),
+  timer: document.getElementById('timer'),
   startButton: document.getElementById('start'),
-  stopButton: document.getElementById('stop'),
-  clearButton: document.getElementById('clear'),
-  startTime: 0,
-  elapsed: 0,
+  pauseButton: document.getElementById('pause'),
+  resetButton: document.getElementById('reset'),
+  overlay: document.getElementById('breakOverlay'),
+  presetButtons: Array.from(document.querySelectorAll('.preset')),
+  selectedMinutes: 15,
+  totalMs: 15 * 60 * 1000,
+  remainingMs: 15 * 60 * 1000,
+  endTime: 0,
   intervalId: null,
 };
 
-function updateTimerDisplay() {
-  const now = Date.now();
-  timerState.elapsed = now - timerState.startTime;
+function formatTime(ms) {
+  const totalSeconds = Math.ceil(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
 
-  const centiseconds = Math.floor((timerState.elapsed % 1000) / 10);
-  const seconds = Math.floor((timerState.elapsed / 1000) % 60);
-  const minutes = Math.floor((timerState.elapsed / 60000) % 60);
-  const hours = Math.floor((timerState.elapsed / 3600000) % 24);
+  if (hours > 0) {
+    return [hours, minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':');
+  }
 
-  timerState.timerElement.textContent = [hours, minutes, seconds, centiseconds]
-    .map((value) => String(value).padStart(2, '0'))
-    .join(':');
+  return [minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':');
+}
+
+function renderTimer() {
+  state.timer.textContent = formatTime(state.remainingMs);
+}
+
+function setButtonState(running) {
+  state.app.classList.toggle('is-running', running);
+  state.startButton.style.display = running ? 'none' : 'inline-flex';
+  state.pauseButton.style.display = running ? 'inline-flex' : 'none';
+  state.resetButton.style.display = state.remainingMs === state.totalMs ? 'none' : 'inline-flex';
+}
+
+function stopRunningTimer() {
+  clearInterval(state.intervalId);
+  state.intervalId = null;
+}
+
+function hideBreakMessage() {
+  state.overlay.classList.remove('show');
+  state.overlay.setAttribute('aria-hidden', 'true');
+}
+
+function showBreakMessage() {
+  state.overlay.classList.add('show');
+  state.overlay.setAttribute('aria-hidden', 'false');
+}
+
+function onTimerEnd() {
+  stopRunningTimer();
+  state.remainingMs = 0;
+  renderTimer();
+  setButtonState(false);
+  showBreakMessage();
+}
+
+function tick() {
+  state.remainingMs = Math.max(0, state.endTime - Date.now());
+  renderTimer();
+
+  if (state.remainingMs <= 0) {
+    onTimerEnd();
+  }
 }
 
 function startTimer() {
-  timerState.startTime = Date.now() - timerState.elapsed;
-  timerState.intervalId = setInterval(updateTimerDisplay, 10);
-
-  timerState.startButton.style.display = 'none';
-  timerState.stopButton.style.display = 'inline-flex';
-  timerState.clearButton.style.display = 'none';
+  hideBreakMessage();
+  state.endTime = Date.now() + state.remainingMs;
+  state.intervalId = setInterval(tick, 250);
+  setButtonState(true);
 }
 
-function stopTimer() {
-  clearInterval(timerState.intervalId);
-  timerState.intervalId = null;
-
-  timerState.startButton.style.display = 'inline-flex';
-  timerState.stopButton.style.display = 'none';
-  timerState.clearButton.style.display = 'inline-flex';
+function pauseTimer() {
+  stopRunningTimer();
+  state.remainingMs = Math.max(0, state.endTime - Date.now());
+  renderTimer();
+  setButtonState(false);
 }
 
-function clearTimer() {
-  clearInterval(timerState.intervalId);
-  timerState.intervalId = null;
-  timerState.elapsed = 0;
-  timerState.timerElement.textContent = '00:00:00:00';
-
-  timerState.startButton.style.display = 'inline-flex';
-  timerState.stopButton.style.display = 'none';
-  timerState.clearButton.style.display = 'none';
+function resetTimer() {
+  stopRunningTimer();
+  hideBreakMessage();
+  state.remainingMs = state.totalMs;
+  renderTimer();
+  setButtonState(false);
 }
 
-timerState.startButton.addEventListener('click', () => {
-  if (!timerState.intervalId) startTimer();
+function setPreset(minutes) {
+  stopRunningTimer();
+  hideBreakMessage();
+
+  state.selectedMinutes = minutes;
+  state.totalMs = minutes * 60 * 1000;
+  state.remainingMs = state.totalMs;
+
+  state.presetButtons.forEach((button) => {
+    button.classList.toggle('is-active', Number(button.dataset.minutes) === minutes);
+  });
+
+  renderTimer();
+  setButtonState(false);
+}
+
+state.startButton.addEventListener('click', () => {
+  if (!state.intervalId && state.remainingMs > 0) {
+    startTimer();
+  }
 });
 
-timerState.stopButton.addEventListener('click', stopTimer);
-timerState.clearButton.addEventListener('click', clearTimer);
+state.pauseButton.addEventListener('click', pauseTimer);
+state.resetButton.addEventListener('click', resetTimer);
+
+state.presetButtons.forEach((button) => {
+  button.addEventListener('click', () => setPreset(Number(button.dataset.minutes)));
+});
+
+state.overlay.addEventListener('click', hideBreakMessage);
+
+renderTimer();
+setButtonState(false);
