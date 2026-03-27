@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Focus Timer</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%F0%9F%92%9A%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app" id="app">
+      <header class="branding">
+        <h1>Focus Timer</h1>
+        <p>stay locked in</p>
+      </header>
+
+      <div id="timer" class="timer-display" aria-live="polite">15:00</div>
+
+      <div class="presets" aria-label="Timer presets">
+        <button class="preset is-active" data-minutes="15" type="button">15 min</button>
+        <button class="preset" data-minutes="30" type="button">30 min</button>
+        <button class="preset" data-minutes="60" type="button">60 min</button>
+      </div>
+
+      <div class="controls">
+        <button id="start" type="button">Start</button>
+        <button id="pause" type="button">Pause</button>
+        <button id="reset" type="button">Reset</button>
+      </div>
+    </main>
+
+    <section id="breakOverlay" class="overlay" aria-hidden="true">
+      <p>Take a break</p>
+    </section>
+
+    <script src="script.js"></script>
+  </body>
+</html>
